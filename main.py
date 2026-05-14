@@ -43,13 +43,12 @@ HTML_TEMPLATE = """
         }
         .content { position: relative; z-index: 2; }
         
-        /* WiFi Indicator */
         .wifi-indicator {
             position: absolute;
             top: 15px;
             right: 15px;
-            background: rgba(0,0,0,0.5);
-            padding: 6px 10px;
+            background: rgba(0,0,0,0.6);
+            padding: 6px 12px;
             border-radius: 12px;
             font-size: 0.9em;
             z-index: 3;
@@ -105,7 +104,7 @@ HTML_TEMPLATE = """
 <body>
     <div class="container">
         <div class="wifi-indicator">
-            📶 <span id="wifi-text">{{ rssi }} dBm</span>
+            📶 <span>{{ rssi }} dBm</span>
         </div>
         
         <div class="content">
@@ -131,21 +130,24 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
+        // Atualização automática
         setTimeout(() => location.reload(), 3000);
         
-        // Alerta sonoro acima de 90%
-        {% if porcentagem >= 90 %}
-        window.onload = function() {
-            const audio = new Audio('https://www.soundjay.com/buttons/beep-07.mp3');
-            audio.play().catch(() => {});
+        // Alerta sonoro a partir de 95%
+        if ({{ porcentagem }} >= 95) {
+            const alertSound = new Audio('https://www.soundjay.com/buttons/beep-07.mp3');
             
-            // Repete o alerta a cada 8 segundos enquanto estiver acima de 90%
-            setInterval(() => {
-                audio.currentTime = 0;
-                audio.play().catch(() => {});
-            }, 8000);
-        };
-        {% endif %}
+            function playAlert() {
+                alertSound.currentTime = 0;
+                alertSound.play().catch(() => {});
+            }
+            
+            // Toca imediatamente
+            playAlert();
+            
+            // Repete a cada 6 segundos
+            setInterval(playAlert, 6000);
+        }
     </script>
 </body>
 </html>
