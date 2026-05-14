@@ -31,7 +31,7 @@ HTML_TEMPLATE = """
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
             color: white;
             position: relative;
-            min-height: 480px;
+            min-height: 500px;
         }
         .container::before {
             content: '';
@@ -72,18 +72,18 @@ HTML_TEMPLATE = """
         .status { font-size: 1.6em; font-weight: bold; margin: 10px 0; }
         
         .porta-status {
-            margin-top: 20px;
+            margin-top: 25px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
         .porta-imagem {
-            width: 90px;
-            height: 90px;
-            border-radius: 15px;
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
             object-fit: cover;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            margin-bottom: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.6);
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -136,11 +136,11 @@ def index():
         else:
             cor = "#ef4444"; cor2 = "#f87171"; status = "🔴 Lixeira Cheia"
             
-        if porta == 0:
-            porta_imagem = "blob:https://imgur.com/172a7a0e-1553-4495-b59a-b9fb23ffd50f.jpg"   # ← Troque depois
+        if porta == 0:   # Fechada
+            porta_imagem = "https://i.imgur.com/SEU_LINK_FECHADA.jpg"  
             porta_texto = "✅ Porta Fechada"
-        else:
-            porta_imagem = "blob:https://imgur.com/649557e3-495f-4fa2-b71f-f00437ac48e1"    # ← Troque depois
+        else:            # Aberta
+            porta_imagem = "https://i.imgur.com/SEU_LINK_ABERTA.jpg"   
             porta_texto = "⚠️ Porta Aberta"
             
     except:
