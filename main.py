@@ -1,64 +1,151 @@
-#include <WiFi.h>
-#include <HTTPClient.h>
+from flask import Flask, request, render_template_string
 
-// --- Wi-Fi ---
-const char* ssid = "MARCIO";
-const char* password = "1234567890";
+app = Flask(__name__)
 
-// --- Sensores ---
-const int trigPin = 3;      // HC-SR04
-const int echoPin = 2;
-const int doorPin = 4;      // Reed Switch (Porta)
+dados = {"distancia": 0, "porta": 0}
 
-const char* serverName = "https://servidor-esp32-com-hc-sr04-production.up.railway.app/update";
+MAX_ALTURA = 120.0   
 
-void setup() {
-  Serial.begin(115200);
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  pinMode(doorPin, INPUT_PULLUP);   // Importante: Pull-up interno
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lixeira Inteligente</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            text-align: center;
+            margin: 0;
+            padding: 15px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 620px;
+            margin: 20px auto;
+            padding: 25px 20px;
+            background: url('https://i.imgur.com/SUA_IMAGEM_DIRETA.jpg') center/cover no-repeat;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            color: white;
+            position: relative;
+            min-height: 420px;
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.68);
+            border-radius: 25px;
+            z-index: 1;
+        }
+        .content { position: relative; z-index: 2; }
+        
+        h1 { margin: 10px 0 5px 0; font-size: 1.8em; text-shadow: 0 3px 10px rgba(0,0,0,0.9); }
+        .progress-bg {
+            width: 100%;
+            height: 50px;
+            background-color: rgba(255,255,255,0.25);
+            border-radius: 30px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: {{ porcentagem }}%;
+            background: linear-gradient(90deg, {{ cor }}, {{ cor2 }});
+            transition: width 0.9s ease-in-out;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.25em;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.7);
+        }
+        .status { font-size: 1.6em; font-weight: bold; margin: 10px 0; text-shadow: 0 3px 8px rgba(0,0,0,0.9); }
+        .porta { font-size: 1.4em; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>🗑️ Lixeira Inteligente</h1>
+            <p><strong>Márcio José Aguiar da Silva</strong></p>
+            <p>Atividade Extensionista III</p>
+            
+            <h2>{{ distancia }} cm</h2>
+            
+            <div class="progress-bg">
+                <div class="progress-bar">{{ porcentagem }}%</div>
+            </div>
+            
+            <div class="status" style="color: {{ cor }};">
+                {{ status }}
+            </div>
+            
+            <div class="porta">
+                {{ porta_status }}
+            </div>
+        </div>
+    </div>
 
-  WiFi.begin(ssid, password);
-  Serial.print("Conectando ao WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\n✅ WiFi conectado!");
-}
+    <script>
+        setTimeout(() => location.reload(), 3000);
+    </script>
+</body>
+</html>
+"""
 
-void loop() {
-  // Medição de distância
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-  long duration = pulseIn(echoPin, HIGH, 30000);
-  float distancia = duration * 0.0343 / 2;
+@app.route("/")
+def index():
+    try:
+        distancia = float(dados.get("distancia", 0))
+        porta = int(dados.get("porta", 0))
+        ocupacao = max(0, min(100, 100 - (distancia / MAX_ALTURA * 100)))
+        
+        if ocupacao <= 20:
+            cor = "#22c55e"; cor2 = "#4ade80"; status = "🟢 Lixeira Vazia"
+        elif ocupacao <= 40:
+            cor = "#86efac"; cor2 = "#a3e635"; status = "🟢 Quase Vazia"
+        elif ocupacao <= 60:
+            cor = "#eab308"; cor2 = "#facc15"; status = "🟡 Nível Médio"
+        elif ocupacao <= 80:
+            cor = "#f97316"; cor2 = "#fb923c"; status = "🟠 Quase Cheia"
+        else:
+            cor = "#ef4444"; cor2 = "#f87171"; status = "🔴 Lixeira Cheia"
+            
+        porta_status = "✅ <span style='color:#22c55e;'>Porta Fechada</span>" if porta == 0 else "⚠️ <span style='color:#ef4444;'>Porta Aberta</span>"
+        
+    except:
+        distancia = 0
+        ocupacao = 0
+        porta_status = "Sem dados da porta"
+        cor = "#cbd5e1"
+        cor2 = "#e2e8f0"
+        status = "Sem dados"
 
-  // Leitura da porta
-  bool portaAberta = digitalRead(doorPin) == HIGH;  // HIGH = aberta (depende da ligação)
+    return render_template_string(
+        HTML_TEMPLATE,
+        distancia=round(distancia, 1),
+        porcentagem=round(ocupacao),
+        cor=cor,
+        cor2=cor2,
+        status=status,
+        porta_status=porta_status
+    )
 
-  Serial.printf("📏 Distancia: %.1f cm | Porta: %s\n", 
-                distancia, portaAberta ? "ABERTA" : "FECHADA");
-
-  // Envio para o servidor
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.begin(serverName);
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-    String postData = "distancia=" + String(distancia, 1) + 
-                     "&porta=" + String(portaAberta ? 1 : 0);
-
-    int httpResponseCode = http.POST(postData);
-    
-    if (httpResponseCode > 0) {
-      Serial.println("✅ Enviado com sucesso!");
-    }
-    http.end();
-  }
-
-  delay(3000);
-}
+@app.route("/update", methods=["POST"])
+def update():
+    dist = request.form.get("distancia")
+    porta = request.form.get("porta")
+    if dist:
+        dados["distancia"] = dist
+        if porta is not None:
+            dados["porta"] = porta
+        print(f"✅ Recebido: {dist} cm | Porta: {porta}")
+        return "OK", 200
+    return "Erro", 400
