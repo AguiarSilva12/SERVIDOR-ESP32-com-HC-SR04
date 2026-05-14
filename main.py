@@ -4,7 +4,6 @@ app = Flask(__name__)
 
 dados = {"distancia": 0}
 
-# Ajuste conforme a altura real da sua lixeira
 MAX_ALTURA = 120.0   
 
 HTML_TEMPLATE = """
@@ -31,13 +30,13 @@ HTML_TEMPLATE = """
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
             color: white;
             position: relative;
-            min-height: 420px;
+            min-height: 460px;
         }
         .container::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.65);
+            background: rgba(0, 0, 0, 0.68);
             border-radius: 25px;
             z-index: 1;
         }
@@ -52,7 +51,6 @@ HTML_TEMPLATE = """
             border-radius: 30px;
             margin: 25px 0;
             overflow: hidden;
-            backdrop-filter: blur(4px);
         }
         .progress-bar {
             height: 100%;
