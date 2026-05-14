@@ -31,7 +31,7 @@ HTML_TEMPLATE = """
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
             color: white;
             position: relative;
-            min-height: 420px;
+            min-height: 460px;
         }
         .container::before {
             content: '';
@@ -64,10 +64,24 @@ HTML_TEMPLATE = """
             color: white;
             font-weight: bold;
             font-size: 1.25em;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.7);
         }
-        .status { font-size: 1.6em; font-weight: bold; margin: 10px 0; text-shadow: 0 3px 8px rgba(0,0,0,0.9); }
-        .porta { font-size: 1.4em; margin: 15px 0; }
+        .status { font-size: 1.6em; font-weight: bold; margin: 10px 0; }
+        
+        /* Status da Porta */
+        .porta-status {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .porta-imagem {
+            width: 90px;
+            height: 90px;
+            border-radius: 15px;
+            object-fit: cover;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -87,8 +101,9 @@ HTML_TEMPLATE = """
                 {{ status }}
             </div>
             
-            <div class="porta">
-                {{ porta_status }}
+            <div class="porta-status">
+                <img src="{{ porta_imagem }}" class="porta-imagem" alt="Status da Porta">
+                <strong>{{ porta_texto }}</strong>
             </div>
         </div>
     </div>
@@ -118,15 +133,21 @@ def index():
         else:
             cor = "#ef4444"; cor2 = "#f87171"; status = "🔴 Lixeira Cheia"
             
-        porta_status = "✅ <span style='color:#22c55e;'>Porta Fechada</span>" if porta == 0 else "⚠️ <span style='color:#ef4444;'>Porta Aberta</span>"
-        
+        if porta == 0:  # Fechada
+            porta_imagem = "https://imgur.com/a/BetATfm"   # ← Substitua
+            porta_texto = "✅ Porta Fechada"
+        else:  # Aberta
+            porta_imagem = "https://imgur.com/a/4bT2F9M"    # ← Substitua
+            porta_texto = "⚠️ Porta Aberta"
+            
     except:
         distancia = 0
         ocupacao = 0
-        porta_status = "Sem dados da porta"
         cor = "#cbd5e1"
         cor2 = "#e2e8f0"
         status = "Sem dados"
+        porta_imagem = ""
+        porta_texto = "Sem dados da porta"
 
     return render_template_string(
         HTML_TEMPLATE,
@@ -135,7 +156,8 @@ def index():
         cor=cor,
         cor2=cor2,
         status=status,
-        porta_status=porta_status
+        porta_imagem=porta_imagem,
+        porta_texto=porta_texto
     )
 
 @app.route("/update", methods=["POST"])
@@ -146,6 +168,6 @@ def update():
         dados["distancia"] = dist
         if porta is not None:
             dados["porta"] = porta
-        print(f"✅ Recebido: {dist} cm | Porta: {porta}")
+        print(f"✅ Recebido: {dist} cm | Porta: {'Aberta' if porta=='1' else 'Fechada'}")
         return "OK", 200
     return "Erro", 400
