@@ -26,7 +26,7 @@ HTML_TEMPLATE = """
             max-width: 620px;
             margin: 20px auto;
             padding: 25px 20px;
-            background: url('https://i.imgur.com/FgI0DSY.jpeg') center/cover no-repeat;
+            background: url('https://i.imgur.com/SUA_IMAGEM_DIRETA.jpg') center/cover no-repeat;
             border-radius: 25px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
             color: white;
@@ -52,9 +52,6 @@ HTML_TEMPLATE = """
             border-radius: 12px;
             font-size: 0.9em;
             z-index: 3;
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
         
         h1 { margin: 10px 0 5px 0; font-size: 1.8em; text-shadow: 0 3px 10px rgba(0,0,0,0.9); }
@@ -99,12 +96,13 @@ HTML_TEMPLATE = """
             box-shadow: 0 5px 20px rgba(0,0,0,0.6);
             margin-bottom: 10px;
         }
+        .alerta { color: #ff4444; font-size: 1.4em; margin: 10px 0; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="wifi-indicator">
-            📶 <span>{{ rssi }} dBm</span>
+            📶 {{ rssi }} dBm
         </div>
         
         <div class="content">
@@ -122,6 +120,10 @@ HTML_TEMPLATE = """
                 {{ status }}
             </div>
             
+            {% if porcentagem >= 95 %}
+            <div class="alerta">🔴 LIXEIRA MUITO CHEIA - ESVAZIE!</div>
+            {% endif %}
+            
             <div class="porta-status">
                 <img src="{{ porta_imagem }}" class="porta-imagem" alt="Status da Porta">
                 <strong>{{ porta_texto }}</strong>
@@ -130,23 +132,19 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
-        // Atualização automática
         setTimeout(() => location.reload(), 3000);
         
         // Alerta sonoro a partir de 95%
         if ({{ porcentagem }} >= 95) {
-            const alertSound = new Audio('https://www.soundjay.com/buttons/beep-07.mp3');
+            let sound = new Audio('https://freesound.org/data/previews/276/276951_5121236-lq.mp3');
             
-            function playAlert() {
-                alertSound.currentTime = 0;
-                alertSound.play().catch(() => {});
+            function tocarAlerta() {
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log("Som bloqueado pelo navegador"));
             }
             
-            // Toca imediatamente
-            playAlert();
-            
-            // Repete a cada 6 segundos
-            setInterval(playAlert, 6000);
+            tocarAlerta();                    // toca imediatamente
+            setInterval(tocarAlerta, 5000);   // repete a cada 5 segundos
         }
     </script>
 </body>
@@ -208,10 +206,7 @@ def update():
     rssi = request.form.get("rssi")
     if dist:
         dados["distancia"] = dist
-        if porta is not None:
-            dados["porta"] = porta
-        if rssi is not None:
-            dados["rssi"] = rssi
-        print(f"✅ Recebido: {dist} cm | Porta: {porta} | RSSI: {rssi}")
+        if porta is not None: dados["porta"] = porta
+        if rssi is not None: dados["rssi"] = rssi
         return "OK", 200
     return "Erro", 400
