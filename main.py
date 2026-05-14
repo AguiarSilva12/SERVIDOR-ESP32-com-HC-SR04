@@ -26,7 +26,7 @@ HTML_TEMPLATE = """
             max-width: 620px;
             margin: 20px auto;
             padding: 25px 20px;
-            background: url('https://i.imgur.com/SUA_IMAGEM_DIRETA.jpg') center/cover no-repeat;
+            background: url('https://i.imgur.com/FgI0DSY.jpeg') center/cover no-repeat;
             border-radius: 25px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
             color: white;
