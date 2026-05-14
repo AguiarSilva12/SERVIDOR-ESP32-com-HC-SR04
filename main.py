@@ -134,10 +134,10 @@ def index():
             cor = "#ef4444"; cor2 = "#f87171"; status = "🔴 Lixeira Cheia"
             
         if porta == 0:  # Fechada
-            porta_imagem = "https://imgur.com/a/BetATfm"   # ← Substitua
+            porta_imagem = "https://i.imgur.com/cBeAqgf.jpeg"   # ← Substitua
             porta_texto = "✅ Porta Fechada"
         else:  # Aberta
-            porta_imagem = "https://imgur.com/a/4bT2F9M"    # ← Substitua
+            porta_imagem = "https://i.imgur.com/g6ypQIU.jpeg"    # ← Substitua
             porta_texto = "⚠️ Porta Aberta"
             
     except:
