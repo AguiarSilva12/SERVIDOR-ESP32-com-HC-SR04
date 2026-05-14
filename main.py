@@ -2,7 +2,7 @@ from flask import Flask, request, render_template_string
 
 app = Flask(__name__)
 
-dados = {"distancia": 0, "porta": 0}
+dados = {"distancia": 0, "porta": 0, "rssi": -50}
 
 MAX_ALTURA = 120.0   
 
@@ -43,6 +43,21 @@ HTML_TEMPLATE = """
         }
         .content { position: relative; z-index: 2; }
         
+        /* WiFi Indicator */
+        .wifi-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.5);
+            padding: 6px 10px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
         h1 { margin: 10px 0 5px 0; font-size: 1.8em; text-shadow: 0 3px 10px rgba(0,0,0,0.9); }
         
         .progress-bg {
@@ -78,8 +93,8 @@ HTML_TEMPLATE = """
             align-items: center;
         }
         .porta-imagem {
-            width: 100px;
-            height: 100px;
+            width: 110px;
+            height: 110px;
             border-radius: 20px;
             object-fit: cover;
             box-shadow: 0 5px 20px rgba(0,0,0,0.6);
@@ -89,6 +104,10 @@ HTML_TEMPLATE = """
 </head>
 <body>
     <div class="container">
+        <div class="wifi-indicator">
+            📶 <span id="wifi-text">{{ rssi }} dBm</span>
+        </div>
+        
         <div class="content">
             <h1>🗑️ Lixeira Inteligente</h1>
             <p><strong>Márcio José Aguiar da Silva</strong></p>
@@ -113,6 +132,20 @@ HTML_TEMPLATE = """
 
     <script>
         setTimeout(() => location.reload(), 3000);
+        
+        // Alerta sonoro acima de 90%
+        {% if porcentagem >= 90 %}
+        window.onload = function() {
+            const audio = new Audio('https://www.soundjay.com/buttons/beep-07.mp3');
+            audio.play().catch(() => {});
+            
+            // Repete o alerta a cada 8 segundos enquanto estiver acima de 90%
+            setInterval(() => {
+                audio.currentTime = 0;
+                audio.play().catch(() => {});
+            }, 8000);
+        };
+        {% endif %}
     </script>
 </body>
 </html>
@@ -123,6 +156,7 @@ def index():
     try:
         distancia = float(dados.get("distancia", 0))
         porta = int(dados.get("porta", 0))
+        rssi = int(dados.get("rssi", -50))
         ocupacao = max(0, min(100, 100 - (distancia / MAX_ALTURA * 100)))
         
         if ocupacao <= 20:
@@ -136,16 +170,17 @@ def index():
         else:
             cor = "#ef4444"; cor2 = "#f87171"; status = "🔴 Lixeira Cheia"
             
-        if porta == 0:  # Fechada
+        if porta == 0:
             porta_imagem = "https://i.imgur.com/rAWpErV.jpeg"
             porta_texto = "✅ Porta Fechada"
-        else:           # Aberta
+        else:
             porta_imagem = "https://i.imgur.com/4IKIN7A.jpeg"
             porta_texto = "⚠️ Porta Aberta"
             
     except:
         distancia = 0
         ocupacao = 0
+        rssi = -50
         cor = "#cbd5e1"
         cor2 = "#e2e8f0"
         status = "Sem dados"
@@ -160,17 +195,21 @@ def index():
         cor2=cor2,
         status=status,
         porta_imagem=porta_imagem,
-        porta_texto=porta_texto
+        porta_texto=porta_texto,
+        rssi=rssi
     )
 
 @app.route("/update", methods=["POST"])
 def update():
     dist = request.form.get("distancia")
     porta = request.form.get("porta")
+    rssi = request.form.get("rssi")
     if dist:
         dados["distancia"] = dist
         if porta is not None:
             dados["porta"] = porta
-        print(f"✅ Recebido: {dist} cm | Porta: {'Aberta' if porta=='1' else 'Fechada'}")
+        if rssi is not None:
+            dados["rssi"] = rssi
+        print(f"✅ Recebido: {dist} cm | Porta: {porta} | RSSI: {rssi}")
         return "OK", 200
     return "Erro", 400
