@@ -2,111 +2,110 @@ from flask import Flask, request, render_template_string
 
 app = Flask(__name__)
 
-dados = {"distancia": 0, "porta": 0, "rssi": -50}
+# Simulando dados de 5 lixeiras
+lixeiras = {
+    1: {"distancia": 16.1, "porta": 1, "rssi": -65, "nome": "Lixeira 01"},
+    2: {"distancia": 45.0, "porta": 0, "rssi": -72, "nome": "Lixeira 02"},
+    3: {"distancia": 8.5,  "porta": 0, "rssi": -58, "nome": "Lixeira 03"},
+    4: {"distancia": 95.0, "porta": 1, "rssi": -80, "nome": "Lixeira 04"},
+    5: {"distancia": 30.0, "porta": 0, "rssi": -68, "nome": "Lixeira 05"},
+}
 
-MAX_ALTURA = 120.0   
+MAX_ALTURA = 120.0
 
-HTML_TEMPLATE = """
+# ====================== TEMPLATE DA TELA PRINCIPAL ======================
+HOME_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lixeira Inteligente</title>
+    <title>Lixeiras Inteligentes</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             background: #0f172a;
-            text-align: center;
+            color: white;
             margin: 0;
-            padding: 15px;
+            padding: 20px;
             min-height: 100vh;
         }
-        .container {
-            max-width: 620px;
-            margin: 20px auto;
-            padding: 25px 20px;
-            background: url('https://i.imgur.com/SUA_IMAGEM_DIRETA.jpg') center/cover no-repeat;
-            border-radius: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
-            color: white;
-            position: relative;
-            min-height: 500px;
+        h1 { text-align: center; margin-bottom: 30px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.68);
-            border-radius: 25px;
-            z-index: 1;
-        }
-        .content { position: relative; z-index: 2; }
-        
-        .wifi-indicator {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(0,0,0,0.6);
-            padding: 6px 12px;
-            border-radius: 12px;
-            font-size: 0.9em;
-            z-index: 3;
-        }
-        
-        h1 { margin: 10px 0 5px 0; font-size: 1.8em; text-shadow: 0 3px 10px rgba(0,0,0,0.9); }
-        
-        .progress-bg {
-            width: 100%;
-            height: 52px;
-            background-color: rgba(255,255,255,0.25);
-            border-radius: 30px;
-            margin: 20px 0;
-            overflow: hidden;
-            position: relative;
-        }
-        .progress-bar {
-            height: 100%;
-            width: {{ porcentagem }}%;
-            background: linear-gradient(90deg, {{ cor }}, {{ cor2 }});
-            transition: width 0.9s ease-in-out;
-            border-radius: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 1.35em;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
-            position: absolute;
-        }
-        .status { font-size: 1.6em; font-weight: bold; margin: 10px 0; }
-        
-        .porta-status {
-            margin-top: 25px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .porta-imagem {
-            width: 110px;
-            height: 110px;
+        .card {
+            background: rgba(255,255,255,0.1);
             border-radius: 20px;
-            object-fit: cover;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.6);
-            margin-bottom: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
         }
-        .alerta { color: #ff4444; font-size: 1.4em; margin: 10px 0; }
+        .card:hover {
+            transform: scale(1.05);
+            background: rgba(255,255,255,0.2);
+        }
+        .card h3 { margin: 10px 0; }
+        .progress-small {
+            height: 12px;
+            background: #333;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #ef4444);
+        }
+    </style>
+</head>
+<body>
+    <h1>🗑️ Lixeiras Inteligentes</h1>
+    <div class="grid">
+        {% for id, data in lixeiras.items() %}
+        <div class="card" onclick="window.location.href='/lixeira/{{ id }}'">
+            <h3>{{ data.nome }}</h3>
+            <p>{{ data.distancia }} cm</p>
+            <div class="progress-small">
+                <div class="progress-fill" style="width: {{ (100 - (data.distancia / 120 * 100))|round }}%;"></div>
+            </div>
+            <small>📶 {{ data.rssi }} dBm</small>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
+"""
+
+# ====================== TEMPLATE DETALHADO (atual) ======================
+DETAIL_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ nome }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0f172a; color: white; margin:0; padding:15px; }
+        .container { max-width: 620px; margin: 20px auto; padding: 25px 20px; background: url('https://i.imgur.com/SUA_IMAGEM_DIRETA.jpg') center/cover no-repeat; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); position: relative; min-height: 500px; }
+        .container::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.68); border-radius:25px; z-index:1; }
+        .content { position: relative; z-index: 2; text-align:center; }
+        .wifi { position: absolute; top:15px; right:15px; background:rgba(0,0,0,0.6); padding:6px 12px; border-radius:12px; z-index:3; }
+        .progress-bg { height:52px; background:rgba(255,255,255,0.25); border-radius:30px; margin:20px 0; position:relative; overflow:hidden; }
+        .progress-bar { height:100%; width:{{ porcentagem }}%; background:linear-gradient(90deg, {{ cor }}, {{ cor2 }}); display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.35em; position:absolute; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="wifi-indicator">
-            📶 {{ rssi }} dBm
-        </div>
-        
+        <div class="wifi">📶 {{ rssi }} dBm</div>
         <div class="content">
-            <h1>🗑️ Lixeira Inteligente</h1>
+            <h1>🗑️ {{ nome }}</h1>
             <p><strong>Márcio José Aguiar da Silva</strong></p>
             <p>Atividade Extensionista III</p>
             
@@ -116,79 +115,58 @@ HTML_TEMPLATE = """
                 <div class="progress-bar">{{ porcentagem }}%</div>
             </div>
             
-            <div class="status" style="color: {{ cor }};">
+            <div style="font-size:1.6em; font-weight:bold; color:{{ cor }}; margin:10px 0;">
                 {{ status }}
             </div>
             
-            {% if porcentagem >= 95 %}
-            <div class="alerta">🔴 LIXEIRA MUITO CHEIA - ESVAZIE!</div>
-            {% endif %}
-            
-            <div class="porta-status">
-                <img src="{{ porta_imagem }}" class="porta-imagem" alt="Status da Porta">
-                <strong>{{ porta_texto }}</strong>
+            <div style="margin-top:25px;">
+                <img src="{{ porta_imagem }}" width="110" height="110" style="border-radius:20px; box-shadow:0 5px 20px rgba(0,0,0,0.6);">
+                <p><strong>{{ porta_texto }}</strong></p>
             </div>
         </div>
     </div>
 
     <script>
-        setTimeout(() => location.reload(), 3000);
-        
-        // Alerta sonoro a partir de 95%
-        if ({{ porcentagem }} >= 95) {
-            let sound = new Audio('https://freesound.org/data/previews/276/276951_5121236-lq.mp3');
-            
-            function tocarAlerta() {
-                sound.currentTime = 0;
-                sound.play().catch(e => console.log("Som bloqueado pelo navegador"));
-            }
-            
-            tocarAlerta();                    // toca imediatamente
-            setInterval(tocarAlerta, 5000);   // repete a cada 5 segundos
-        }
+        setTimeout(() => location.reload(), 4000);
     </script>
 </body>
 </html>
 """
 
 @app.route("/")
-def index():
-    try:
-        distancia = float(dados.get("distancia", 0))
-        porta = int(dados.get("porta", 0))
-        rssi = int(dados.get("rssi", -50))
-        ocupacao = max(0, min(100, 100 - (distancia / MAX_ALTURA * 100)))
-        
-        if ocupacao <= 20:
-            cor = "#22c55e"; cor2 = "#4ade80"; status = "🟢 Lixeira Vazia"
-        elif ocupacao <= 40:
-            cor = "#86efac"; cor2 = "#a3e635"; status = "🟢 Quase Vazia"
-        elif ocupacao <= 60:
-            cor = "#eab308"; cor2 = "#facc15"; status = "🟡 Nível Médio"
-        elif ocupacao <= 80:
-            cor = "#f97316"; cor2 = "#fb923c"; status = "🟠 Quase Cheia"
-        else:
-            cor = "#ef4444"; cor2 = "#f87171"; status = "🔴 Lixeira Cheia"
-            
-        if porta == 0:
-            porta_imagem = "https://i.imgur.com/rAWpErV.jpeg"
-            porta_texto = "✅ Porta Fechada"
-        else:
-            porta_imagem = "https://i.imgur.com/4IKIN7A.jpeg"
-            porta_texto = "⚠️ Porta Aberta"
-            
-    except:
-        distancia = 0
-        ocupacao = 0
-        rssi = -50
-        cor = "#cbd5e1"
-        cor2 = "#e2e8f0"
-        status = "Sem dados"
-        porta_imagem = ""
-        porta_texto = "Sem dados da porta"
+def home():
+    return render_template_string(HOME_TEMPLATE, lixeiras=lixeiras)
 
-    return render_template_string(
-        HTML_TEMPLATE,
+@app.route("/lixeira/<int:id>")
+def detalhe_lixeira(id):
+    if id not in lixeiras:
+        return "Lixeira não encontrada", 404
+    
+    data = lixeiras[id]
+    distancia = float(data["distancia"])
+    porta = int(data["porta"])
+    ocupacao = max(0, min(100, 100 - (distancia / MAX_ALTURA * 100)))
+    
+    if ocupacao <= 20:
+        cor = "#22c55e"; cor2 = "#4ade80"; status = "🟢 Lixeira Vazia"
+    elif ocupacao <= 40:
+        cor = "#86efac"; cor2 = "#a3e635"; status = "🟢 Quase Vazia"
+    elif ocupacao <= 60:
+        cor = "#eab308"; cor2 = "#facc15"; status = "🟡 Nível Médio"
+    elif ocupacao <= 80:
+        cor = "#f97316"; cor2 = "#fb923c"; status = "🟠 Quase Cheia"
+    else:
+        cor = "#ef4444"; cor2 = "#f87171"; status = "🔴 Lixeira Cheia"
+    
+    if porta == 0:
+        porta_imagem = "https://i.imgur.com/rAWpErV.jpeg"
+        porta_texto = "✅ Porta Fechada"
+    else:
+        porta_imagem = "https://i.imgur.com/4IKIN7A.jpeg"
+        porta_texto = "⚠️ Porta Aberta"
+    
+    return render_template_string(DETAIL_TEMPLATE,
+        nome=data["nome"],
         distancia=round(distancia, 1),
         porcentagem=round(ocupacao),
         cor=cor,
@@ -196,17 +174,8 @@ def index():
         status=status,
         porta_imagem=porta_imagem,
         porta_texto=porta_texto,
-        rssi=rssi
+        rssi=data["rssi"]
     )
 
-@app.route("/update", methods=["POST"])
-def update():
-    dist = request.form.get("distancia")
-    porta = request.form.get("porta")
-    rssi = request.form.get("rssi")
-    if dist:
-        dados["distancia"] = dist
-        if porta is not None: dados["porta"] = porta
-        if rssi is not None: dados["rssi"] = rssi
-        return "OK", 200
-    return "Erro", 400
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
