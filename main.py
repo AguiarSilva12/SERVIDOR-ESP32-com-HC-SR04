@@ -1,17 +1,35 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, render_template_string
+import random
 
 app = Flask(__name__)
 
-# Simulando dados de 5 lixeiras
+MAX_ALTURA = 120.0
+
+# ====================== DADOS DAS LIXEIRAS ======================
 lixeiras = {
-    1: {"distancia": 16.1, "porta": 1, "rssi": -65, "nome": "Lixeira 01"},
-    2: {"distancia": 45.0, "porta": 0, "rssi": -72, "nome": "Lixeira 02"},
-    3: {"distancia": 8.5,  "porta": 0, "rssi": -58, "nome": "Lixeira 03"},
-    4: {"distancia": 95.0, "porta": 1, "rssi": -80, "nome": "Lixeira 04"},
-    5: {"distancia": 30.0, "porta": 0, "rssi": -68, "nome": "Lixeira 05"},
+    1: {  # ← Lixeira 1 com dados "reais" (fixos)
+        "distancia": 16.1,
+        "porta": 1,           # 1 = Aberta, 0 = Fechada
+        "rssi": -65,
+        "nome": "Lixeira 01"
+    }
 }
 
-MAX_ALTURA = 120.0
+# Função para gerar dados aleatórios para as outras lixeiras
+def gerar_dados_aleatorios():
+    distancia = round(random.uniform(8.0, 110.0), 1)
+    rssi = random.randint(-85, -55)
+    return distancia, rssi
+
+# Preenche as lixeiras 2 até 5 com dados aleatórios
+for i in range(2, 6):
+    distancia, rssi = gerar_dados_aleatorios()
+    lixeiras[i] = {
+        "distancia": distancia,
+        "porta": 0,                    # Sempre fechada
+        "rssi": rssi,
+        "nome": f"Lixeira 0{i}"
+    }
 
 # ====================== TEMPLATE DA TELA PRINCIPAL ======================
 HOME_TEMPLATE = """
@@ -83,7 +101,7 @@ HOME_TEMPLATE = """
 </html>
 """
 
-# ====================== TEMPLATE DETALHADO (atual) ======================
+# ====================== TEMPLATE DETALHADO ======================
 DETAIL_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -108,26 +126,25 @@ DETAIL_TEMPLATE = """
             <h1>🗑️ {{ nome }}</h1>
             <p><strong>Márcio José Aguiar da Silva</strong></p>
             <p>Atividade Extensionista III</p>
-            
+           
             <h2>{{ distancia }} cm</h2>
-            
+           
             <div class="progress-bg">
                 <div class="progress-bar">{{ porcentagem }}%</div>
             </div>
-            
+           
             <div style="font-size:1.6em; font-weight:bold; color:{{ cor }}; margin:10px 0;">
                 {{ status }}
             </div>
-            
+           
             <div style="margin-top:25px;">
                 <img src="{{ porta_imagem }}" width="110" height="110" style="border-radius:20px; box-shadow:0 5px 20px rgba(0,0,0,0.6);">
                 <p><strong>{{ porta_texto }}</strong></p>
             </div>
         </div>
     </div>
-
     <script>
-        setTimeout(() => location.reload(), 4000);
+        setTimeout(() => location.reload(), 5000);
     </script>
 </body>
 </html>
@@ -141,12 +158,12 @@ def home():
 def detalhe_lixeira(id):
     if id not in lixeiras:
         return "Lixeira não encontrada", 404
-    
+   
     data = lixeiras[id]
     distancia = float(data["distancia"])
     porta = int(data["porta"])
     ocupacao = max(0, min(100, 100 - (distancia / MAX_ALTURA * 100)))
-    
+   
     if ocupacao <= 20:
         cor = "#22c55e"; cor2 = "#4ade80"; status = "🟢 Lixeira Vazia"
     elif ocupacao <= 40:
@@ -157,14 +174,14 @@ def detalhe_lixeira(id):
         cor = "#f97316"; cor2 = "#fb923c"; status = "🟠 Quase Cheia"
     else:
         cor = "#ef4444"; cor2 = "#f87171"; status = "🔴 Lixeira Cheia"
-    
+   
     if porta == 0:
         porta_imagem = "https://i.imgur.com/rAWpErV.jpeg"
         porta_texto = "✅ Porta Fechada"
     else:
         porta_imagem = "https://i.imgur.com/4IKIN7A.jpeg"
         porta_texto = "⚠️ Porta Aberta"
-    
+   
     return render_template_string(DETAIL_TEMPLATE,
         nome=data["nome"],
         distancia=round(distancia, 1),
@@ -178,4 +195,4 @@ def detalhe_lixeira(id):
     )
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8080, debug=True)
