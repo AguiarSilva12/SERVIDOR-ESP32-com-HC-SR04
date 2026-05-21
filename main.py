@@ -1,3 +1,60 @@
+from flask import Flask, render_template_string, request, jsonify
+import random
+import time
+
+app = Flask(__name__)
+
+MAX_ALTURA = 120.0
+
+# ====================== DADOS DAS LIXEIRAS ======================
+lixeiras = {
+    1: {
+        "distancia": 25.0,
+        "porta": 0,
+        "rssi": -68,
+        "nome": "Lixeira 01",
+        "ultima_atualizacao": time.strftime("%H:%M:%S")
+    }
+}
+
+def gerar_dados_aleatorios():
+    distancia = round(random.uniform(8.0, 110.0), 1)
+    rssi = random.randint(-85, -55)
+    return distancia, rssi
+
+for i in range(2, 6):
+    distancia, rssi = gerar_dados_aleatorios()
+    lixeiras[i] = {
+        "distancia": distancia,
+        "porta": 0,
+        "rssi": rssi,
+        "nome": f"Lixeira 0{i}",
+        "ultima_atualizacao": "Aleatório"
+    }
+
+# ====================== ROTA PARA ESP32 ======================
+@app.route("/atualizar/<int:id>", methods=["POST"])
+def atualizar_lixeira(id):
+    if id != 1:
+        return jsonify({"erro": "Apenas Lixeira 1"}), 400
+
+    try:
+        dados = request.get_json(force=True)
+        
+        lixeiras[1]["distancia"] = float(dados.get("distancia"))
+        lixeiras[1]["porta"] = int(dados.get("porta", 0))
+        lixeiras[1]["rssi"] = int(dados.get("rssi", -70))
+        lixeiras[1]["ultima_atualizacao"] = time.strftime("%H:%M:%S")
+
+        print(f"✅ Lixeira 1 atualizada: {lixeiras[1]['distancia']} cm")
+        return jsonify({"status": "sucesso"}), 200
+
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        return jsonify({"erro": str(e)}), 400
+
+
+# ====================== HOME TEMPLATE (com refresh) ======================
 HOME_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -5,7 +62,7 @@ HOME_TEMPLATE = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lixeiras Inteligentes</title>
-    <meta http-equiv="refresh" content="3">   <!-- Atualiza a cada 3 segundos -->
+    <meta http-equiv="refresh" content="3">
     <style>
         body {font-family: Arial, sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; min-height: 100vh;}
         h1 { text-align: center; margin-bottom: 30px; }
@@ -36,3 +93,13 @@ HOME_TEMPLATE = """
 </body>
 </html>
 """
+
+# ====================== ROTAS ======================
+@app.route("/")
+def home():
+    return render_template_string(HOME_TEMPLATE, lixeiras=lixeiras)
+
+# (Mantenha sua rota /lixeira/<id> anterior aqui)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
