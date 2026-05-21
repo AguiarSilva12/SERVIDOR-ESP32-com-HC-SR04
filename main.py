@@ -1,105 +1,148 @@
-from flask import Flask, render_template_string, request, jsonify
-import random
+from flask import Flask, request, render_template_string
 import time
 
 app = Flask(__name__)
 
-MAX_ALTURA = 120.0
-
-# ====================== DADOS DAS LIXEIRAS ======================
-lixeiras = {
-    1: {
-        "distancia": 25.0,
-        "porta": 0,
-        "rssi": -68,
-        "nome": "Lixeira 01",
-        "ultima_atualizacao": time.strftime("%H:%M:%S")
-    }
+# Armazenamento dos dados
+dados = {
+    "distancia": 25.0,
+    "temperatura": 25.0,
+    "umidade": 50.0,
+    "porta": 0,
+    "ir": 0,
+    "ultima_atualizacao": time.strftime("%H:%M:%S")
 }
 
-def gerar_dados_aleatorios():
-    distancia = round(random.uniform(8.0, 110.0), 1)
-    rssi = random.randint(-85, -55)
-    return distancia, rssi
-
-for i in range(2, 6):
-    distancia, rssi = gerar_dados_aleatorios()
-    lixeiras[i] = {
-        "distancia": distancia,
-        "porta": 0,
-        "rssi": rssi,
-        "nome": f"Lixeira 0{i}",
-        "ultima_atualizacao": "Aleatório"
-    }
-
-# ====================== ROTA PARA ESP32 ======================
-@app.route("/atualizar/<int:id>", methods=["POST"])
-def atualizar_lixeira(id):
-    if id != 1:
-        return jsonify({"erro": "Apenas Lixeira 1"}), 400
-
-    try:
-        dados = request.get_json(force=True)
-        
-        lixeiras[1]["distancia"] = float(dados.get("distancia"))
-        lixeiras[1]["porta"] = int(dados.get("porta", 0))
-        lixeiras[1]["rssi"] = int(dados.get("rssi", -70))
-        lixeiras[1]["ultima_atualizacao"] = time.strftime("%H:%M:%S")
-
-        print(f"✅ Lixeira 1 atualizada: {lixeiras[1]['distancia']} cm")
-        return jsonify({"status": "sucesso"}), 200
-
-    except Exception as e:
-        print(f"❌ Erro: {e}")
-        return jsonify({"erro": str(e)}), 400
-
-
-# ====================== HOME TEMPLATE (com refresh) ======================
-HOME_TEMPLATE = """
+HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lixeiras Inteligentes</title>
-    <meta http-equiv="refresh" content="3">
+    <title>Lixeira Inteligente</title>
     <style>
-        body {font-family: Arial, sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; min-height: 100vh;}
-        h1 { text-align: center; margin-bottom: 30px; }
-        .grid {display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto;}
-        .card {background: rgba(255,255,255,0.1); border-radius: 20px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 20px rgba(0,0,0,0.4);}
-        .card:hover {transform: scale(1.05); background: rgba(255,255,255,0.2);}
-        .card h3 { margin: 10px 0; }
-        .progress-small {height: 12px; background: #333; border-radius: 10px; margin: 10px 0; overflow: hidden;}
-        .progress-fill {height: 100%; background: linear-gradient(90deg, #22c55e, #ef4444);}
-        .time {font-size: 0.8em; color: #94a3b8;}
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #0f172a; 
+            color: white; 
+            text-align: center; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+            padding: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+        }
+        .progress-bg {
+            width: 100%;
+            background-color: #334155;
+            border-radius: 20px;
+            height: 40px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: {{ porcentagem }}%;
+            background: linear-gradient(90deg, #22c55e, #ef4444);
+            transition: width 0.6s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        h1 { color: #60a5fa; margin-bottom: 10px; }
+        .info { margin: 15px 0; font-size: 1.1em; }
+        .status { font-size: 1.5em; font-weight: bold; margin: 15px 0; }
     </style>
 </head>
 <body>
-    <h1>🗑️ Lixeiras Inteligentes</h1>
-    <div class="grid">
-        {% for id, data in lixeiras.items() %}
-        <div class="card" onclick="window.location.href='/lixeira/{{ id }}'">
-            <h3>{{ data.nome }}</h3>
-            <p>{{ data.distancia }} cm</p>
-            <div class="progress-small">
-                <div class="progress-fill" style="width: {{ (100 - (data.distancia / 120 * 100))|round }}%;"></div>
-            </div>
-            <small>📶 {{ data.rssi }} dBm</small><br>
-            <small class="time">Atualizado: {{ data.ultima_atualizacao }}</small>
+    <div class="container">
+        <h1>🗑️ Lixeira Inteligente</h1>
+        <p><strong>Márcio José Aguiar da Silva</strong></p>
+        <p>Atividade Extensionista III</p>
+        
+        <h2>{{ distancia }} cm</h2>
+        
+        <div class="progress-bg">
+            <div class="progress-bar">{{ porcentagem }}%</div>
         </div>
-        {% endfor %}
+        
+        <div class="status" style="color: {{ cor }};">{{ status }}</div>
+        
+        <div class="info">
+            🌡️ Temperatura: <strong>{{ temperatura }} °C</strong><br>
+            💧 Umidade: <strong>{{ umidade }} %</strong><br>
+            🚪 Porta: <strong>{{ porta_texto }}</strong><br>
+            👀 Infravermelho: <strong>{{ ir_texto }}</strong><br>
+            ⏰ Atualizado: {{ ultima_atualizacao }}
+        </div>
     </div>
+    
+    <script>
+        setTimeout(() => location.reload(), 3000);  // Atualiza a cada 3 segundos
+    </script>
 </body>
 </html>
 """
 
-# ====================== ROTAS ======================
 @app.route("/")
-def home():
-    return render_template_string(HOME_TEMPLATE, lixeiras=lixeiras)
+def index():
+    try:
+        val = float(dados.get("distancia", 0))
+        porcentagem = max(0, min(100, 100 - (val / 1.2)))  # 120 cm = 100%
+        
+        if porcentagem <= 30:
+            cor = "#22c55e"
+            status = "🟢 Lixeira Vazia"
+        elif porcentagem <= 70:
+            cor = "#eab308"
+            status = "🟡 Nível Médio"
+        else:
+            cor = "#ef4444"
+            status = "🔴 Lixeira Cheia"
+    except:
+        val = 0
+        porcentagem = 0
+        cor = "#64748b"
+        status = "Sem dados"
 
-# (Mantenha sua rota /lixeira/<id> anterior aqui)
+    porta_texto = "ABERTA ⚠️" if dados.get("porta") == 1 else "FECHADA ✅"
+    ir_texto = "Detectado" if dados.get("ir") == 0 else "Livre"
+
+    return render_template_string(
+        HTML_TEMPLATE,
+        distancia=round(val, 1),
+        porcentagem=round(porcentagem),
+        cor=cor,
+        status=status,
+        temperatura=round(float(dados.get("temperatura", 0)), 1),
+        umidade=round(float(dados.get("umidade", 0)), 1),
+        porta_texto=porta_texto,
+        ir_texto=ir_texto,
+        ultima_atualizacao=dados.get("ultima_atualizacao", "")
+    )
+
+@app.route("/update", methods=["POST"])
+def update():
+    try:
+        dados["distancia"] = float(request.form.get("distancia", 25.0))
+        dados["temperatura"] = float(request.form.get("temperatura", 25.0))
+        dados["umidade"] = float(request.form.get("umidade", 50.0))
+        dados["porta"] = int(request.form.get("porta", 0))
+        dados["ir"] = int(request.form.get("ir", 1))
+        dados["ultima_atualizacao"] = time.strftime("%H:%M:%S")
+        
+        print(f"✅ Dados recebidos - Dist: {dados['distancia']} cm | Temp: {dados['temperatura']}°C")
+        return "OK", 200
+    except Exception as e:
+        print(f"❌ Erro ao receber dados: {e}")
+        return "Erro", 400
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8080, debug=True)
