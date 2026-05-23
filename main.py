@@ -30,8 +30,8 @@ HTML_TEMPLATE = """
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.92)), 
-                        url('https://imgur.com/a/T2qClvk') no-repeat center center fixed;
+            background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.92)),
+                        url('https://i.imgur.com/96reii8.jpeg') no-repeat center center fixed;
             background-size: cover;
             color: white;
             text-align: center;
@@ -39,22 +39,22 @@ HTML_TEMPLATE = """
             padding: 20px;
             min-height: 100vh;
         }
-        .container { 
-            max-width: 620px; 
-            margin: 0 auto; 
+        .container {
+            max-width: 620px;
+            margin: 0 auto;
             background: rgba(0, 0, 0, 0.70);
             border-radius: 20px;
             padding: 30px;
             backdrop-filter: blur(8px);
         }
-        h1 { 
-            color: #22c55e; 
+        h1 {
+            color: #22c55e;
             text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
         }
-        .distancia { 
-            font-size: 3.8rem; 
-            font-weight: bold; 
-            margin: 15px 0; 
+        .distancia {
+            font-size: 3.8rem;
+            font-weight: bold;
+            margin: 15px 0;
             text-shadow: 0 0 15px rgba(0,0,0,0.8);
         }
         .progress-bg {
@@ -70,18 +70,18 @@ HTML_TEMPLATE = """
             background: linear-gradient(90deg, #22c55e, #eab308);
             transition: width 0.8s ease;
         }
-        .status { 
-            font-size: 1.6rem; 
-            margin: 20px 0; 
-            font-weight: bold; 
+        .status {
+            font-size: 1.6rem;
+            margin: 20px 0;
+            font-weight: bold;
         }
-        .info { 
-            margin: 12px 0; 
-            font-size: 1.2rem; 
+        .info {
+            margin: 12px 0;
+            font-size: 1.2rem;
         }
-        .atualizado { 
-            color: #a5b4fc; 
-            font-size: 1.05rem; 
+        .atualizado {
+            color: #a5b4fc;
+            font-size: 1.05rem;
             margin-top: 20px;
         }
     </style>
@@ -90,11 +90,11 @@ HTML_TEMPLATE = """
     <div class="container">
         <h1>🗑️ Lixeira Inteligente</h1>
         <div class="distancia" id="distancia">--- cm</div>
-       
+      
         <div class="progress-bg">
             <div class="progress-bar" id="progress"></div>
         </div>
-       
+      
         <p class="status" id="status">Aguardando dados...</p>
         <p class="info">🚪 Porta: <strong id="porta">---</strong></p>
         <p class="info">📶 Sinal WiFi: <strong id="rssi">---</strong> dBm</p>
@@ -164,5 +164,4 @@ def update():
 
 if __name__ == "__main__":
     print("🚀 Servidor rodando em http://0.0.0.0:5000")
-    print("📡 Acesse no navegador: http://SEU_IP:5000")
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    print("📡 Acesse no navegador: http://SEU_IP:
