@@ -8,7 +8,7 @@ app = Flask(__name__)
 # Dados globais
 dados = {
     "distancia": 120.0,
-    "nivel": 0,           # ← Novo campo: porcentagem
+    "nivel": 0,
     "porta": 0,
     "rssi": -80,
     "ultima_atualizacao": ""
@@ -46,6 +46,13 @@ HTML_TEMPLATE = """
         .overlay {
             max-width: 700px;
             width: 100%;
+        }
+        .titulo-projeto {
+            color: #a0d8ff;
+            font-size: 1.35rem;
+            margin-bottom: 8px;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            font-weight: normal;
         }
         h1 {
             color: #22ff66;
@@ -93,7 +100,14 @@ HTML_TEMPLATE = """
 </head>
 <body>
     <div class="overlay">
+        <!-- Título do Projeto no topo -->
+        <p class="titulo-projeto">
+            Atividade Extensionista III - Projeto de Eletrônica<br>
+            Aluno: Marcio Jose Aguiar da Silva
+        </p>
+        
         <h1>🗑️ Lixeira Inteligente</h1>
+        
         <div class="distancia" id="distancia">--- cm</div>
         <div class="progress-bg">
             <div class="progress-bar" id="progress"></div>
@@ -112,12 +126,10 @@ HTML_TEMPLATE = """
                 .then(data => {
                     document.getElementById('distancia').textContent = data.distancia.toFixed(1) + " cm";
                     
-                    // Usa a porcentagem enviada pelo ESP32
                     const porcentagem = Math.max(0, Math.min(100, data.nivel));
                     document.getElementById('progress').style.width = porcentagem + "%";
                     document.getElementById('nivel-info').textContent = "📊 Nível: " + porcentagem + "%";
 
-                    // Status baseado na porcentagem real
                     let statusTexto = "";
                     if (porcentagem <= 25) statusTexto = "🟢 Quase Vazia";
                     else if (porcentagem <= 60) statusTexto = "🟡 Meio Cheia";
@@ -158,7 +170,7 @@ def update():
             conteudo = request.form.to_dict()
 
         dados["distancia"] = float(conteudo.get("distancia", 120))
-        dados["nivel"] = int(conteudo.get("nivel", 0))        # ← Recebendo a porcentagem
+        dados["nivel"] = int(conteudo.get("nivel", 0))
         dados["porta"] = int(conteudo.get("porta", 0))
         dados["rssi"] = int(conteudo.get("rssi", -90))
         dados["ultima_atualizacao"] = get_horario_brasilia()
