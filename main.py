@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template_string, jsonify
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import os
 
 app = Flask(__name__)
 
@@ -41,26 +42,22 @@ HTML_TEMPLATE = """
             align-items: center;
             justify-content: center;
         }
-
         .overlay {
             max-width: 700px;
             width: 100%;
         }
-
         h1 {
             color: #22ff66;
             font-size: 2.2rem;
             margin-bottom: 10px;
             text-shadow: 0 0 15px rgba(34, 255, 102, 0.8);
         }
-
         .distancia {
             font-size: 4.5rem;
             font-weight: bold;
             margin: 15px 0;
             text-shadow: 0 0 20px rgba(0,0,0,0.9);
         }
-
         .progress-bg {
             width: 100%;
             background: rgba(255,255,255,0.2);
@@ -68,28 +65,22 @@ HTML_TEMPLATE = """
             border-radius: 20px;
             overflow: hidden;
             margin: 20px auto;
-            backdrop-filter: blur(5px);
         }
-
         .progress-bar {
             height: 100%;
             background: linear-gradient(90deg, #22ff66, #ffcc00);
             transition: width 0.8s ease;
-            box-shadow: 0 0 15px rgba(34, 255, 102, 0.6);
         }
-
         .status {
             font-size: 1.8rem;
             margin: 15px 0;
             font-weight: bold;
         }
-
         .info {
             font-size: 1.35rem;
             margin: 12px 0;
             text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
-
         .atualizado {
             font-size: 1.2rem;
             color: #a0d8ff;
@@ -101,11 +92,9 @@ HTML_TEMPLATE = """
     <div class="overlay">
         <h1>🗑️ Lixeira Inteligente</h1>
         <div class="distancia" id="distancia">--- cm</div>
-        
         <div class="progress-bg">
             <div class="progress-bar" id="progress"></div>
         </div>
-        
         <p class="status" id="status">Aguardando dados...</p>
         <p class="info" id="porta-info">🚪 Porta: ---</p>
         <p class="info" id="rssi-info">📶 Sinal WiFi: --- dBm</p>
@@ -118,7 +107,6 @@ HTML_TEMPLATE = """
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('distancia').textContent = data.distancia.toFixed(1) + " cm";
-                    
                     const porcentagem = Math.max(0, Math.min(100, 100 - (data.distancia / 1.2)));
                     document.getElementById('progress').style.width = porcentagem + "%";
                     
@@ -134,7 +122,6 @@ HTML_TEMPLATE = """
                 })
                 .catch(err => console.log("Erro:", err));
         }
-
         setInterval(atualizarDados, 2000);
         window.onload = atualizarDados;
     </script>
@@ -160,4 +147,18 @@ def update():
             conteudo = request.form.to_dict()
 
         dados["distancia"] = float(conteudo.get("distancia", 120))
-        dados
+        dados["porta"] = int(conteudo.get("porta", 0))
+        dados["rssi"] = int(conteudo.get("rssi", -90))
+        dados["ultima_atualizacao"] = get_horario_brasilia()
+        
+        print(f"✅ Recebido → Dist: {dados['distancia']:.1f}cm | Porta: {'Aberta' if dados['porta']==1 else 'Fechada'}")
+        return "OK", 200
+    except Exception as e:
+        print("❌ Erro:", e)
+        return "Erro", 400
+
+# ==================== CONFIGURAÇÃO PARA RAILWAY ====================
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    print(f"🚀 Servidor rodando na porta {port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
