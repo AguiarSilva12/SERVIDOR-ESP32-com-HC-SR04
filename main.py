@@ -2,11 +2,15 @@ from flask import Flask, request, render_template_string, jsonify
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import os
+import json
 
 app = Flask(__name__)
 
-# Dados globais
-dados = {
+# Caminho para salvar os dados em disco
+ARQUIVO_DADOS = "dados.txt"
+
+# Estrutura padrão inicial
+dados_padrao = {
     "distancia": 120.0,
     "nivel": 0,
     "porta": 0,
@@ -19,7 +23,26 @@ def get_horario_brasilia():
     agora = datetime.now(fuso_brasilia)
     return agora.strftime("%H:%M:%S")
 
-dados["ultima_atualizacao"] = get_horario_brasilia()
+def carregar_dados():
+    """ Carrega os dados salvos no arquivo de texto """
+    if os.path.exists(ARQUIVO_DADOS):
+        try:
+            with open(ARQUIVO_DADOS, "r") as f:
+                return json.load(f)
+        except Exception:
+            return dados_padrao.copy()
+    else:
+        valores = dados_padrao.copy()
+        valores["ultima_atualizacao"] = get_horario_brasilia()
+        return valores
+
+def salvar_dados(novos_dados):
+    """ Salva os dados no arquivo de texto de forma persistente """
+    try:
+        with open(ARQUIVO_DADOS, "w") as f:
+            json.dump(novos_dados, f)
+    except Exception as e:
+        print("❌ Erro ao escrever no arquivo:", e)
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -100,7 +123,6 @@ HTML_TEMPLATE = """
 </head>
 <body>
     <div class="overlay">
-        <!-- Título do Projeto no topo -->
         <p class="titulo-projeto">
             Atividade Extensionista III - Projeto de Eletrônica<br>
             Aluno: Marcio Jose Aguiar da Silva
@@ -145,6 +167,7 @@ HTML_TEMPLATE = """
                 .catch(err => console.log("Erro ao buscar dados:", err));
         }
 
+        // Faz requisições de atualização automática a cada 2 segundos
         setInterval(atualizarDados, 2000);
         window.onload = atualizarDados;
     </script>
@@ -158,7 +181,9 @@ def index():
 
 @app.route("/dados")
 def get_dados():
-    return jsonify(dados)
+    # Lê do arquivo local em vez da memória instável
+    dados_atuais = carregar_dados()
+    return jsonify(dados_atuais)
 
 @app.route("/atualizar/1", methods=["POST"])
 @app.route("/update", methods=["POST"])
@@ -169,21 +194,24 @@ def update():
         else:
             conteudo = request.form.to_dict()
 
-        dados["distancia"] = float(conteudo.get("distancia", 120))
-        dados["nivel"] = int(conteudo.get("nivel", 0))
-        dados["porta"] = int(conteudo.get("porta", 0))
-        dados["rssi"] = int(conteudo.get("rssi", -90))
-        dados["ultima_atualizacao"] = get_horario_brasilia()
+        # Monta a estrutura atualizada
+        novos_dados = {
+            "distancia": float(conteudo.get("distancia", 120)),
+            "nivel": int(conteudo.get("nivel", 0)),
+            "porta": int(conteudo.get("porta", 0)),
+            "rssi": int(conteudo.get("rssi", -90)),
+            "ultima_atualizacao": get_horario_brasilia()
+        }
        
-        print(f"✅ Recebido → Dist: {dados['distancia']:.1f}cm | Nível: {dados['nivel']}% | "
-              f"Porta: {'Aberta' if dados['porta']==1 else 'Fechada'}")
+        # Grava os dados fisicamente no disco do Railway
+        salvar_dados(novos_dados)
         
+        print(f"✅ Recebido e Salvo → Dist: {novos_dados['distancia']:.1f}cm | Nível: {novos_dados['nivel']}%")
         return "OK", 200
     except Exception as e:
         print("❌ Erro ao processar dados:", e)
         return "Erro", 400
 
-# ==================== CONFIGURAÇÃO PARA RAILWAY ====================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"🚀 Servidor rodando na porta {port}")
