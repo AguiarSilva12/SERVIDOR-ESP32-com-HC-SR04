@@ -1,7 +1,6 @@
 from flask import Flask, request, render_template_string, jsonify
-import time
 from datetime import datetime
-from zoneinfo import ZoneInfo  # Python 3.9+
+from zoneinfo import ZoneInfo
 
 app = Flask(__name__)
 
@@ -14,12 +13,11 @@ dados = {
 }
 
 def get_horario_brasilia():
-    """Retorna horário atual de Brasília formatado"""
     fuso_brasilia = ZoneInfo("America/Sao_Paulo")
     agora = datetime.now(fuso_brasilia)
     return agora.strftime("%H:%M:%S")
 
-# Atualiza o horário inicial
+# Horário inicial
 dados["ultima_atualizacao"] = get_horario_brasilia()
 
 HTML_TEMPLATE = """
@@ -32,8 +30,8 @@ HTML_TEMPLATE = """
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.95)), 
-                        url('https://images.unsplash.com/photo-1581091226825-a6a9b5c1c7c3?ixlib=rb-4.0.3&auto=format&fit=crop&q=80') no-repeat center center fixed;
+            background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.92)), 
+                        url('https://imgur.com/a/T2qClvk') no-repeat center center fixed;
             background-size: cover;
             color: white;
             text-align: center;
@@ -44,7 +42,7 @@ HTML_TEMPLATE = """
         .container { 
             max-width: 620px; 
             margin: 0 auto; 
-            background: rgba(0, 0, 0, 0.65);
+            background: rgba(0, 0, 0, 0.70);
             border-radius: 20px;
             padding: 30px;
             backdrop-filter: blur(8px);
@@ -100,7 +98,7 @@ HTML_TEMPLATE = """
         <p class="status" id="status">Aguardando dados...</p>
         <p class="info">🚪 Porta: <strong id="porta">---</strong></p>
         <p class="info">📶 Sinal WiFi: <strong id="rssi">---</strong> dBm</p>
-        <p class="atualizado">⏰ Brasília: <span id="tempo">---</span></p>
+        <p class="atualizado">⏰ <span id="tempo">---</span></p>
     </div>
 
     <script>
@@ -156,7 +154,7 @@ def update():
         dados["rssi"] = int(conteudo.get("rssi", -90))
         dados["ultima_atualizacao"] = get_horario_brasilia()
         
-        print(f"✅ Recebido → Dist: {dados['distancia']:.1f}cm | Porta: {'Aberta' if dados['porta']==1 else 'Fechada'} | Hora: {dados['ultima_atualizacao']}")
+        print(f"✅ Recebido → Dist: {dados['distancia']:.1f}cm | Porta: {'Aberta' if dados['porta']==1 else 'Fechada'}")
         return "OK", 200
 
     except Exception as e:
