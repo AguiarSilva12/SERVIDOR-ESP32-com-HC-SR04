@@ -17,7 +17,6 @@ def get_horario_brasilia():
     agora = datetime.now(fuso_brasilia)
     return agora.strftime("%H:%M:%S")
 
-# Horário inicial
 dados["ultima_atualizacao"] = get_horario_brasilia()
 
 HTML_TEMPLATE = """
@@ -107,7 +106,6 @@ HTML_TEMPLATE = """
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('distancia').textContent = data.distancia.toFixed(1) + " cm";
-                    
                     const porcentagem = Math.max(0, Math.min(100, 100 - (data.distancia / 1.2)));
                     document.getElementById('progress').style.width = porcentagem + "%";
                     
@@ -131,6 +129,7 @@ HTML_TEMPLATE = """
 </html>
 """
 
+# (O resto do código Flask permanece igual)
 @app.route("/")
 def index():
     return render_template_string(HTML_TEMPLATE)
@@ -139,7 +138,6 @@ def index():
 def get_dados():
     return jsonify(dados)
 
-# ==================== ROTA PARA O ESP32 ====================
 @app.route("/atualizar/1", methods=["POST"])
 @app.route("/update", methods=["POST"])
 def update():
@@ -164,4 +162,4 @@ def update():
 
 if __name__ == "__main__":
     print("🚀 Servidor rodando em http://0.0.0.0:5000")
-    print("📡 Acesse no navegador: http://SEU_IP:
+    app.run(host="0.0.0.0", port=5000, debug=False)
