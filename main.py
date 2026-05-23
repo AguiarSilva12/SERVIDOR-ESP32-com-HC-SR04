@@ -8,6 +8,7 @@ app = Flask(__name__)
 # Dados globais
 dados = {
     "distancia": 120.0,
+    "nivel": 0,           # ← Novo campo: porcentagem
     "porta": 0,
     "rssi": -80,
     "ultima_atualizacao": ""
@@ -61,18 +62,20 @@ HTML_TEMPLATE = """
         .progress-bg {
             width: 100%;
             background: rgba(255,255,255,0.2);
-            height: 28px;
+            height: 32px;
             border-radius: 20px;
             overflow: hidden;
-            margin: 20px auto;
+            margin: 25px auto;
+            box-shadow: 0 0 15px rgba(0,0,0,0.6);
         }
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #22ff66, #ffcc00);
-            transition: width 0.8s ease;
+            background: linear-gradient(90deg, #22ff66, #ffaa00);
+            transition: width 0.9s ease;
+            box-shadow: 0 0 12px rgba(34, 255, 102, 0.8);
         }
         .status {
-            font-size: 1.8rem;
+            font-size: 1.9rem;
             margin: 15px 0;
             font-weight: bold;
         }
@@ -84,7 +87,7 @@ HTML_TEMPLATE = """
         .atualizado {
             font-size: 1.2rem;
             color: #a0d8ff;
-            margin-top: 25px;
+            margin-top: 30px;
         }
     </style>
 </head>
@@ -96,6 +99,7 @@ HTML_TEMPLATE = """
             <div class="progress-bar" id="progress"></div>
         </div>
         <p class="status" id="status">Aguardando dados...</p>
+        <p class="info" id="nivel-info">📊 Nível: ---%</p>
         <p class="info" id="porta-info">🚪 Porta: ---</p>
         <p class="info" id="rssi-info">📶 Sinal WiFi: --- dBm</p>
         <p class="atualizado">⏰ <span id="tempo">---</span></p>
@@ -107,21 +111,28 @@ HTML_TEMPLATE = """
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('distancia').textContent = data.distancia.toFixed(1) + " cm";
-                    const porcentagem = Math.max(0, Math.min(100, 100 - (data.distancia / 1.2)));
-                    document.getElementById('progress').style.width = porcentagem + "%";
                     
+                    // Usa a porcentagem enviada pelo ESP32
+                    const porcentagem = Math.max(0, Math.min(100, data.nivel));
+                    document.getElementById('progress').style.width = porcentagem + "%";
+                    document.getElementById('nivel-info').textContent = "📊 Nível: " + porcentagem + "%";
+
+                    // Status baseado na porcentagem real
                     let statusTexto = "";
-                    if (porcentagem <= 25) statusTexto = "🟢 Vazia";
-                    else if (porcentagem <= 65) statusTexto = "🟡 Meio Cheia";
-                    else statusTexto = "🔴 Cheia";
+                    if (porcentagem <= 25) statusTexto = "🟢 Quase Vazia";
+                    else if (porcentagem <= 60) statusTexto = "🟡 Meio Cheia";
+                    else if (porcentagem <= 85) statusTexto = "🟠 Cheia";
+                    else statusTexto = "🔴 Muito Cheia - Esvaziar!";
+                    
                     document.getElementById('status').textContent = statusTexto;
                     
                     document.getElementById('porta-info').textContent = "🚪 Porta: " + (data.porta === 1 ? "ABERTA" : "FECHADA");
                     document.getElementById('rssi-info').textContent = "📶 Sinal WiFi: " + data.rssi + " dBm";
                     document.getElementById('tempo').textContent = data.ultima_atualizacao;
                 })
-                .catch(err => console.log("Erro:", err));
+                .catch(err => console.log("Erro ao buscar dados:", err));
         }
+
         setInterval(atualizarDados, 2000);
         window.onload = atualizarDados;
     </script>
@@ -147,14 +158,17 @@ def update():
             conteudo = request.form.to_dict()
 
         dados["distancia"] = float(conteudo.get("distancia", 120))
+        dados["nivel"] = int(conteudo.get("nivel", 0))        # ← Recebendo a porcentagem
         dados["porta"] = int(conteudo.get("porta", 0))
         dados["rssi"] = int(conteudo.get("rssi", -90))
         dados["ultima_atualizacao"] = get_horario_brasilia()
+       
+        print(f"✅ Recebido → Dist: {dados['distancia']:.1f}cm | Nível: {dados['nivel']}% | "
+              f"Porta: {'Aberta' if dados['porta']==1 else 'Fechada'}")
         
-        print(f"✅ Recebido → Dist: {dados['distancia']:.1f}cm | Porta: {'Aberta' if dados['porta']==1 else 'Fechada'}")
         return "OK", 200
     except Exception as e:
-        print("❌ Erro:", e)
+        print("❌ Erro ao processar dados:", e)
         return "Erro", 400
 
 # ==================== CONFIGURAÇÃO PARA RAILWAY ====================
