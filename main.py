@@ -30,7 +30,7 @@ def get_horario_brasilia():
 
     return agora.strftime("%H:%M:%S")
 
-# ====================== CARREGAR ======================
+# ====================== CARREGAR DADOS ======================
 def carregar_dados():
 
     if os.path.exists(ARQUIVO_DADOS):
@@ -47,7 +47,7 @@ def carregar_dados():
 
     return dados_padrao.copy()
 
-# ====================== SALVAR ======================
+# ====================== SALVAR DADOS ======================
 def salvar_dados(novos_dados):
 
     try:
@@ -189,11 +189,13 @@ h1 {
     color: white;
 
     font-weight: bold;
+
+    transition: 0.3s;
 }
 
 .btn-trava:hover {
 
-    background: #ff2222;
+    opacity: 0.85;
 }
 
 @keyframes pisca {
@@ -309,10 +311,12 @@ function atualizarDados() {
 
     .then(data => {
 
+        // ===== DISTÂNCIA =====
         document.getElementById('distancia')
         .textContent =
         data.distancia.toFixed(1) + " cm";
 
+        // ===== NÍVEL =====
         const perc =
         Math.max(0,
         Math.min(100,
@@ -326,6 +330,7 @@ function atualizarDados() {
         .textContent =
         `📊 Nível: ${perc}%`;
 
+        // ===== STATUS =====
         let status = "";
 
         if (perc < 70)
@@ -369,13 +374,37 @@ function atualizarDados() {
 
         if (data.trava === 1) {
 
-            travaEl.textContent =
-            "🔒 Trava: ACIONADA";
+            // ===== TRAVA ATIVA =====
+            if (data.destravar === 0) {
+
+                travaEl.textContent =
+                "🔒 Trava: ACIONADA";
+
+                btnTrava.innerHTML =
+                "🔓 Liberar Porta";
+
+                btnTrava.style.background =
+                "#ff4444";
+            }
+
+            // ===== LIBERADA REMOTAMENTE =====
+            else {
+
+                travaEl.textContent =
+                "🔓 Trava: LIBERADA REMOTAMENTE";
+
+                btnTrava.innerHTML =
+                "✅ Porta Liberada";
+
+                btnTrava.style.background =
+                "#22bb33";
+            }
 
             btnTrava.style.display =
             "inline-block";
 
-        } else {
+        }
+        else {
 
             travaEl.textContent =
             "🔓 Trava: DESLIGADA";
@@ -397,7 +426,7 @@ function atualizarDados() {
         `📶 WiFi:
         ${data.rssi} dBm`;
 
-        // ===== HORA =====
+        // ===== HORÁRIO =====
         document.getElementById('tempo')
         .textContent =
         data.ultima_atualizacao;
@@ -405,7 +434,7 @@ function atualizarDados() {
     });
 }
 
-// ====================== BOTÃO ======================
+// ====================== BOTÃO DESTRAVAR ======================
 function destravarPorta() {
 
     fetch('/destravar', {
@@ -418,7 +447,16 @@ function destravarPorta() {
 
     .then(data => {
 
-        alert("🔓 Porta liberada!");
+        const btnTrava =
+        document.getElementById('btnTrava');
+
+        btnTrava.innerHTML =
+        "✅ Comando Enviado";
+
+        btnTrava.style.background =
+        "#22bb33";
+
+        alert("🔓 Porta liberada remotamente!");
 
     });
 
@@ -440,13 +478,13 @@ def index():
 
     return render_template_string(HTML_TEMPLATE)
 
-# ====================== DADOS ======================
+# ====================== DADOS JSON ======================
 @app.route("/dados")
 def get_dados():
 
     return jsonify(carregar_dados())
 
-# ====================== DESTRAVAR ======================
+# ====================== DESTRAVAR PORTA ======================
 @app.route("/destravar", methods=["POST"])
 def destravar():
 
@@ -463,7 +501,7 @@ def destravar():
         "destravar": 1
     })
 
-# ====================== RESETAR ======================
+# ====================== RESETAR COMANDO ======================
 @app.route("/resetar", methods=["POST"])
 def resetar():
 
@@ -477,7 +515,7 @@ def resetar():
 
     return "OK"
 
-# ====================== RECEBER ESP32 ======================
+# ====================== RECEBER DADOS ESP32 ======================
 @app.route("/atualizar/1", methods=["POST"])
 @app.route("/update", methods=["POST"])
 
@@ -553,7 +591,7 @@ def update():
 
         return "Erro", 400
 
-# ====================== INICIAR ======================
+# ====================== INICIAR SERVIDOR ======================
 if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 5000))
