@@ -30,7 +30,7 @@ def get_horario_brasilia():
 
     return agora.strftime("%H:%M:%S")
 
-# ====================== CARREGAR DADOS ======================
+# ====================== CARREGAR ======================
 def carregar_dados():
 
     if os.path.exists(ARQUIVO_DADOS):
@@ -47,7 +47,7 @@ def carregar_dados():
 
     return dados_padrao.copy()
 
-# ====================== SALVAR DADOS ======================
+# ====================== SALVAR ======================
 def salvar_dados(novos_dados):
 
     try:
@@ -58,7 +58,7 @@ def salvar_dados(novos_dados):
 
     except Exception as e:
 
-        print("Erro ao salvar:", e)
+        print("❌ Erro ao salvar:", e)
 
 # ====================== HTML ======================
 HTML_TEMPLATE = """
@@ -70,7 +70,7 @@ HTML_TEMPLATE = """
 <meta charset="UTF-8">
 
 <meta name="viewport"
-content="width=device-width, initial-scale=1.0">
+      content="width=device-width, initial-scale=1.0">
 
 <title>Lixeira Inteligente</title>
 
@@ -97,7 +97,6 @@ body {
     padding: 20px;
 
     min-height: 100vh;
-
 }
 
 .overlay {
@@ -105,13 +104,11 @@ body {
     max-width: 700px;
 
     margin: auto;
-
 }
 
 h1 {
 
     color: #22ff66;
-
 }
 
 .distancia {
@@ -121,7 +118,6 @@ h1 {
     font-weight: bold;
 
     margin: 15px 0;
-
 }
 
 .progress-bg {
@@ -137,7 +133,6 @@ h1 {
     overflow: hidden;
 
     margin: 25px auto;
-
 }
 
 .progress-bar {
@@ -145,10 +140,9 @@ h1 {
     height: 100%;
 
     background:
-    linear-gradient(90deg,#22ff66,#ffaa00);
+    linear-gradient(90deg,#22ff66,#ffaa00,#ff2222);
 
     transition: width 0.9s ease;
-
 }
 
 .status {
@@ -158,7 +152,6 @@ h1 {
     margin: 15px 0;
 
     font-weight: bold;
-
 }
 
 .info {
@@ -166,7 +159,6 @@ h1 {
     font-size: 1.35rem;
 
     margin: 12px 0;
-
 }
 
 .porta-alerta {
@@ -176,7 +168,6 @@ h1 {
     color: #ff4444;
 
     font-weight: bold;
-
 }
 
 .btn-trava {
@@ -198,13 +189,11 @@ h1 {
     color: white;
 
     font-weight: bold;
-
 }
 
 .btn-trava:hover {
 
     background: #ff2222;
-
 }
 
 @keyframes pisca {
@@ -214,7 +203,6 @@ h1 {
     50% {opacity:0.4;}
 
     100% {opacity:1;}
-
 }
 
 </style>
@@ -235,7 +223,8 @@ Aluno: Marcio Jose Aguiar da Silva
 
 <h1>🗑️ Lixeira Inteligente</h1>
 
-<div class="distancia" id="distancia">
+<div class="distancia"
+     id="distancia">
 
 --- cm
 
@@ -243,43 +232,52 @@ Aluno: Marcio Jose Aguiar da Silva
 
 <div class="progress-bg">
 
-<div class="progress-bar" id="progress"></div>
+<div class="progress-bar"
+     id="progress">
 
 </div>
 
-<p class="status" id="status">
+</div>
+
+<p class="status"
+   id="status">
 
 Aguardando dados...
 
 </p>
 
-<p class="info" id="nivel-info">
+<p class="info"
+   id="nivel-info">
 
-📊 Nível: ---
+📊 Nível: ---%
 
 </p>
 
-<p class="info" id="porta-info">
+<p class="info"
+   id="porta-info">
 
 🚪 Porta: ---
 
 </p>
 
-<p class="info" id="trava-info">
+<p class="info"
+   id="trava-info">
 
 🔒 Trava: ---
 
 </p>
 
-<p class="info" id="tempo-aberta">
+<p class="info"
+   id="tempo-aberta">
 
 ⏱️ Tempo Aberta: 0 segundos
 
 </p>
 
-<p class="info" id="rssi-info">
+<p class="info"
+   id="rssi-info">
 
-📶 Sinal WiFi: ---
+📶 WiFi: --- dBm
 
 </p>
 
@@ -289,15 +287,13 @@ Aguardando dados...
 
 </p>
 
-<!-- ====================== BOTÃO ====================== -->
-
 <button
 class="btn-trava"
 id="btnTrava"
 onclick="destravarPorta()"
 style="display:none;">
 
-🔓 Liberar Porta Travada
+🔓 Liberar Porta
 
 </button>
 
@@ -305,135 +301,126 @@ style="display:none;">
 
 <script>
 
-// ====================== ATUALIZA ======================
 function atualizarDados() {
 
-fetch('/dados')
+    fetch('/dados')
 
-.then(r => r.json())
+    .then(r => r.json())
 
-.then(data => {
+    .then(data => {
 
-document.getElementById('distancia').textContent =
-data.distancia.toFixed(1) + " cm";
+        document.getElementById('distancia')
+        .textContent =
+        data.distancia.toFixed(1) + " cm";
 
-const perc =
-Math.max(0, Math.min(100, data.nivel));
+        const perc =
+        Math.max(0,
+        Math.min(100,
+        data.nivel));
 
-document.getElementById('progress').style.width =
-perc + "%";
+        document.getElementById('progress')
+        .style.width =
+        perc + "%";
 
-document.getElementById('nivel-info').textContent =
-`📊 Nível: ${perc}%`;
+        document.getElementById('nivel-info')
+        .textContent =
+        `📊 Nível: ${perc}%`;
 
-let status = "Aguardando...";
+        let status = "";
 
-if (perc <= 25)
-status = "🟢 Quase Vazia";
+        if (perc < 70)
+            status = "🟢 DISPONÍVEL";
 
-else if (perc <= 60)
-status = "🟡 Meio Cheia";
+        else if (perc <= 85)
+            status = "🔴 ALERTA";
 
-else if (perc <= 85)
-status = "🟠 Cheia";
+        else
+            status = "⛔ LOTADA";
 
-else
-status = "🔴 Muito Cheia - Esvaziar!";
+        document.getElementById('status')
+        .textContent = status;
 
-document.getElementById('status').textContent =
-status;
+        // ===== PORTA =====
+        const portaEl =
+        document.getElementById('porta-info');
 
-// ===== PORTA =====
-const portaEl =
-document.getElementById('porta-info');
+        if (data.porta === 1) {
 
-if (data.porta === 1) {
+            portaEl.textContent =
+            "🚪 Porta: ABERTA";
 
-portaEl.textContent =
-"🚪 Porta: ABERTA";
+            if (data.alarme === 1)
+                portaEl.classList.add('porta-alerta');
 
-if (data.alarme === 1)
-portaEl.classList.add('porta-alerta');
+        } else {
 
+            portaEl.textContent =
+            "🚪 Porta: FECHADA";
+
+            portaEl.classList.remove('porta-alerta');
+        }
+
+        // ===== TRAVA =====
+        const travaEl =
+        document.getElementById('trava-info');
+
+        const btnTrava =
+        document.getElementById('btnTrava');
+
+        if (data.trava === 1) {
+
+            travaEl.textContent =
+            "🔒 Trava: ACIONADA";
+
+            btnTrava.style.display =
+            "inline-block";
+
+        } else {
+
+            travaEl.textContent =
+            "🔓 Trava: DESLIGADA";
+
+            btnTrava.style.display =
+            "none";
+        }
+
+        // ===== TEMPO =====
+        document.getElementById('tempo-aberta')
+        .textContent =
+        `⏱️ Tempo Aberta:
+        ${data.tempo_porta_aberta}
+        segundos`;
+
+        // ===== WIFI =====
+        document.getElementById('rssi-info')
+        .textContent =
+        `📶 WiFi:
+        ${data.rssi} dBm`;
+
+        // ===== HORA =====
+        document.getElementById('tempo')
+        .textContent =
+        data.ultima_atualizacao;
+
+    });
 }
-else {
 
-portaEl.textContent =
-"🚪 Porta: FECHADA";
-
-portaEl.classList.remove('porta-alerta');
-
-}
-
-// ===== TRAVA =====
-const travaEl =
-document.getElementById('trava-info');
-
-const btnTrava =
-document.getElementById('btnTrava');
-
-if (data.trava === 1 &&
-data.destravar === 0) {
-
-travaEl.textContent =
-"🔒 Trava: ACIONADA";
-
-btnTrava.style.display =
-"inline-block";
-
-}
-else {
-
-travaEl.textContent =
-"🔓 Trava: DESLIGADA";
-
-btnTrava.style.display =
-"none";
-
-}
-
-// ===== TEMPO =====
-document.getElementById('tempo-aberta').textContent =
-`⏱️ Tempo Aberta:
-${data.tempo_porta_aberta} segundos`;
-
-// ===== WIFI =====
-document.getElementById('rssi-info').textContent =
-`📶 Sinal WiFi:
-${data.rssi} dBm`;
-
-// ===== HORA =====
-document.getElementById('tempo').textContent =
-data.ultima_atualizacao;
-
-});
-
-}
-
-// ====================== LIBERAR TRAVA ======================
+// ====================== BOTÃO ======================
 function destravarPorta() {
 
-fetch('/destravar', {
+    fetch('/destravar', {
 
-method: 'POST'
+        method: 'POST'
 
-})
+    })
 
-.then(response => response.json())
+    .then(r => r.json())
 
-.then(data => {
+    .then(data => {
 
-alert(data.mensagem);
+        alert("🔓 Porta liberada!");
 
-atualizarDados();
-
-})
-
-.catch(error => {
-
-alert("Erro ao liberar porta");
-
-});
+    });
 
 }
 
@@ -447,7 +434,7 @@ window.onload = atualizarDados;
 </html>
 """
 
-# ====================== INDEX ======================
+# ====================== PÁGINA ======================
 @app.route("/")
 def index():
 
@@ -459,7 +446,7 @@ def get_dados():
 
     return jsonify(carregar_dados())
 
-# ====================== LIBERAR TRAVA ======================
+# ====================== DESTRAVAR ======================
 @app.route("/destravar", methods=["POST"])
 def destravar():
 
@@ -467,20 +454,28 @@ def destravar():
 
     dados["destravar"] = 1
 
-    dados["trava"] = 0
-
     salvar_dados(dados)
 
     print("🔓 PORTA LIBERADA REMOTAMENTE")
 
     return jsonify({
-
         "status": "ok",
-
-        "mensagem":
-        "Porta liberada com sucesso!"
-
+        "destravar": 1
     })
+
+# ====================== RESETAR ======================
+@app.route("/resetar", methods=["POST"])
+def resetar():
+
+    dados = carregar_dados()
+
+    dados["destravar"] = 0
+
+    salvar_dados(dados)
+
+    print("♻️ COMANDO RESETADO")
+
+    return "OK"
 
 # ====================== RECEBER ESP32 ======================
 @app.route("/atualizar/1", methods=["POST"])
@@ -499,7 +494,8 @@ def update():
             conteudo = request.form.to_dict()
 
         tempo_aberto = int(
-            conteudo.get("tempo_porta_aberta", 0)
+            conteudo.get(
+            "tempo_porta_aberta", 0)
         )
 
         dados_atuais = carregar_dados()
@@ -507,42 +503,46 @@ def update():
         novos_dados = {
 
             "distancia":
-            float(conteudo.get("distancia", 120)),
+            float(conteudo.get(
+            "distancia", 120)),
 
             "nivel":
-            int(conteudo.get("nivel", 0)),
+            int(conteudo.get(
+            "nivel", 0)),
 
             "porta":
-            int(conteudo.get("porta", 0)),
+            int(conteudo.get(
+            "porta", 0)),
 
             "rssi":
-            int(conteudo.get("rssi", -90)),
+            int(conteudo.get(
+            "rssi", -90)),
 
             "alarme":
-            int(conteudo.get("alarme", 0)),
+            int(conteudo.get(
+            "alarme", 0)),
 
             "trava":
-            int(conteudo.get("trava", 0)),
+            int(conteudo.get(
+            "trava", 0)),
 
             "destravar":
-            dados_atuais.get("destravar", 0),
+            dados_atuais.get(
+            "destravar", 0),
 
             "tempo_porta_aberta":
             tempo_aberto,
 
             "ultima_atualizacao":
             get_horario_brasilia()
-
         }
 
         salvar_dados(novos_dados)
 
         print(
-            f"✅ Recebido → "
-            f"Nível: {novos_dados['nivel']}% | "
-            f"Trava: {novos_dados['trava']} | "
-            f"Porta: "
-            f"{'ABERTA' if novos_dados['porta'] else 'FECHADA'}"
+        f"✅ Nível: {novos_dados['nivel']}% | "
+        f"Trava: {novos_dados['trava']} | "
+        f"Destravar: {novos_dados['destravar']}"
         )
 
         return "OK", 200
