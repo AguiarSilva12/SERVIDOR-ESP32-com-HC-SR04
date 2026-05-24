@@ -6,15 +6,17 @@ import json
 
 app = Flask(__name__)
 
-# Caminho para salvar os dados em disco
+# Caminho para salvar os dados
 ARQUIVO_DADOS = "dados.txt"
 
-# Estrutura padrão inicial
+# Estrutura padrão atualizada
 dados_padrao = {
     "distancia": 120.0,
     "nivel": 0,
     "porta": 0,
     "rssi": -80,
+    "alarme": 0,                    # Novo: Alarme de porta aberta
+    "tempo_porta_aberta": 0,        # Tempo em segundos que a porta está aberta
     "ultima_atualizacao": ""
 }
 
@@ -24,12 +26,11 @@ def get_horario_brasilia():
     return agora.strftime("%H:%M:%S")
 
 def carregar_dados():
-    """ Carrega os dados salvos no arquivo de texto """
     if os.path.exists(ARQUIVO_DADOS):
         try:
             with open(ARQUIVO_DADOS, "r") as f:
                 return json.load(f)
-        except Exception:
+        except:
             return dados_padrao.copy()
     else:
         valores = dados_padrao.copy()
@@ -37,13 +38,13 @@ def carregar_dados():
         return valores
 
 def salvar_dados(novos_dados):
-    """ Salva os dados no arquivo de texto de forma persistente """
     try:
         with open(ARQUIVO_DADOS, "w") as f:
             json.dump(novos_dados, f)
     except Exception as e:
-        print("❌ Erro ao escrever no arquivo:", e)
+        print("❌ Erro ao salvar:", e)
 
+# ====================== TEMPLATE HTML ATUALIZADO ======================
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -66,28 +67,21 @@ HTML_TEMPLATE = """
             align-items: center;
             justify-content: center;
         }
-        .overlay {
-            max-width: 700px;
-            width: 100%;
-        }
+        .overlay { max-width: 700px; width: 100%; }
         .titulo-projeto {
             color: #a0d8ff;
             font-size: 1.35rem;
             margin-bottom: 8px;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8);
-            font-weight: normal;
         }
         h1 {
             color: #22ff66;
             font-size: 2.2rem;
             margin-bottom: 10px;
-            text-shadow: 0 0 15px rgba(34, 255, 102, 0.8);
         }
         .distancia {
             font-size: 4.5rem;
             font-weight: bold;
             margin: 15px 0;
-            text-shadow: 0 0 20px rgba(0,0,0,0.9);
         }
         .progress-bg {
             width: 100%;
@@ -96,28 +90,26 @@ HTML_TEMPLATE = """
             border-radius: 20px;
             overflow: hidden;
             margin: 25px auto;
-            box-shadow: 0 0 15px rgba(0,0,0,0.6);
         }
         .progress-bar {
             height: 100%;
             background: linear-gradient(90deg, #22ff66, #ffaa00);
             transition: width 0.9s ease;
-            box-shadow: 0 0 12px rgba(34, 255, 102, 0.8);
         }
-        .status {
-            font-size: 1.9rem;
-            margin: 15px 0;
+        .status { font-size: 1.9rem; margin: 15px 0; font-weight: bold; }
+        .info { font-size: 1.35rem; margin: 12px 0; }
+        .atualizado { font-size: 1.2rem; color: #a0d8ff; margin-top: 30px; }
+
+        /* Alerta de Porta Aberta */
+        .porta-alerta {
+            animation: pisca-vermelho 0.8s infinite;
+            color: #ff4444;
             font-weight: bold;
         }
-        .info {
-            font-size: 1.35rem;
-            margin: 12px 0;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8);
-        }
-        .atualizado {
-            font-size: 1.2rem;
-            color: #a0d8ff;
-            margin-top: 30px;
+        @keyframes pisca-vermelho {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
@@ -127,16 +119,19 @@ HTML_TEMPLATE = """
             Atividade Extensionista III - Projeto de Eletrônica<br>
             Aluno: Marcio Jose Aguiar da Silva
         </p>
-        
+       
         <h1>🗑️ Lixeira Inteligente</h1>
-        
+       
         <div class="distancia" id="distancia">--- cm</div>
         <div class="progress-bg">
             <div class="progress-bar" id="progress"></div>
         </div>
         <p class="status" id="status">Aguardando dados...</p>
         <p class="info" id="nivel-info">📊 Nível: ---%</p>
+        
         <p class="info" id="porta-info">🚪 Porta: ---</p>
+        <p class="info" id="tempo-aberta">⏱️ Tempo Aberta: --- segundos</p>
+        
         <p class="info" id="rssi-info">📶 Sinal WiFi: --- dBm</p>
         <p class="atualizado">⏰ <span id="tempo">---</span></p>
     </div>
@@ -157,18 +152,33 @@ HTML_TEMPLATE = """
                     else if (porcentagem <= 60) statusTexto = "🟡 Meio Cheia";
                     else if (porcentagem <= 85) statusTexto = "🟠 Cheia";
                     else statusTexto = "🔴 Muito Cheia - Esvaziar!";
-                    
                     document.getElementById('status').textContent = statusTexto;
-                    
-                    document.getElementById('porta-info').textContent = "🚪 Porta: " + (data.porta === 1 ? "ABERTA" : "FECHADA");
+
+                    // Porta com alarme visual
+                    const portaElement = document.getElementById('porta-info');
+                    if (data.porta === 1) {
+                        portaElement.textContent = "🚪 Porta: ABERTA";
+                        if (data.alarme === 1) {
+                            portaElement.classList.add('porta-alerta');
+                        } else {
+                            portaElement.classList.remove('porta-alerta');
+                        }
+                    } else {
+                        portaElement.textContent = "🚪 Porta: FECHADA";
+                        portaElement.classList.remove('porta-alerta');
+                    }
+
+                    // Tempo que a porta está aberta
+                    document.getElementById('tempo-aberta').textContent = 
+                        "⏱️ Tempo Aberta: " + data.tempo_porta_aberta + " segundos";
+
                     document.getElementById('rssi-info').textContent = "📶 Sinal WiFi: " + data.rssi + " dBm";
                     document.getElementById('tempo').textContent = data.ultima_atualizacao;
                 })
                 .catch(err => console.log("Erro ao buscar dados:", err));
         }
 
-        // Faz requisições de atualização automática a cada 2 segundos
-        setInterval(atualizarDados, 2000);
+        setInterval(atualizarDados, 1500);
         window.onload = atualizarDados;
     </script>
 </body>
@@ -181,9 +191,7 @@ def index():
 
 @app.route("/dados")
 def get_dados():
-    # Lê do arquivo local em vez da memória instável
-    dados_atuais = carregar_dados()
-    return jsonify(dados_atuais)
+    return jsonify(carregar_dados())
 
 @app.route("/atualizar/1", methods=["POST"])
 @app.route("/update", methods=["POST"])
@@ -194,20 +202,21 @@ def update():
         else:
             conteudo = request.form.to_dict()
 
-        # Monta a estrutura atualizada
         novos_dados = {
             "distancia": float(conteudo.get("distancia", 120)),
             "nivel": int(conteudo.get("nivel", 0)),
             "porta": int(conteudo.get("porta", 0)),
             "rssi": int(conteudo.get("rssi", -90)),
+            "alarme": int(conteudo.get("alarme", 0)),                    # Novo
+            "tempo_porta_aberta": int(conteudo.get("tempo_porta_aberta", 0)),  # Novo
             "ultima_atualizacao": get_horario_brasilia()
         }
-       
-        # Grava os dados fisicamente no disco do Railway
+      
         salvar_dados(novos_dados)
-        
-        print(f"✅ Recebido e Salvo → Dist: {novos_dados['distancia']:.1f}cm | Nível: {novos_dados['nivel']}%")
+       
+        print(f"✅ Recebido → Nível: {novos_dados['nivel']}% | Porta: {'ABERTA' if novos_dados['porta'] else 'FECHADA'} | Alarme: {novos_dados['alarme']}")
         return "OK", 200
+
     except Exception as e:
         print("❌ Erro ao processar dados:", e)
         return "Erro", 400
